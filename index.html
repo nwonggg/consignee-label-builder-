@@ -106,6 +106,7 @@
     font-size:13.5px; font-family:inherit; background:var(--field); color:var(--ink); width:100%;
   }
   textarea{ resize: vertical; min-height:70px; }
+  select:disabled{ opacity:.5; cursor:not-allowed; }
   #raw{ min-height:130px; }
   input:focus, textarea:focus, select:focus, .btn:focus-visible, .drop:focus-visible{
     outline: 2px solid var(--teal); outline-offset:1px; border-color:var(--teal);
@@ -268,6 +269,29 @@
             <select id="printMode">
               <option value="label">Dymo label</option>
               <option value="paper">Paper test (cut out)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fontSize">Text Size</label>
+            <select id="fontSize">
+              <option value="auto">Auto (shrink to fit)</option>
+              <option value="7">7 pt</option>
+              <option value="8">8 pt</option>
+              <option value="9">9 pt</option>
+              <option value="10">10 pt</option>
+              <option value="11">11 pt</option>
+              <option value="12">12 pt</option>
+              <option value="14">14 pt</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="maxSize">Largest Auto Size</label>
+            <select id="maxSize">
+              <option value="9">9 pt</option>
+              <option value="10">10 pt</option>
+              <option value="11">11 pt</option>
+              <option value="12">12 pt</option>
+              <option value="14">14 pt</option>
             </select>
           </div>
           <div class="custom-size" id="customSize">
@@ -741,6 +765,10 @@ if (typeof module !== "undefined") module.exports = { indexOrders, orderKey, isO
   $("optRotate").checked = store.get("rotate", false);
   $("optClear").checked = store.get("clear", true);
   $("optAuto").checked = store.get("auto", false);
+  $("fontSize").value = store.get("fontSize", "auto");
+  $("maxSize").value = store.get("maxSize", "10");
+  function syncSizeUI() { $("maxSize").disabled = $("fontSize").value !== "auto"; }
+  syncSizeUI();
 
   function size() {
     if ($("labelSize").value === "custom") return { w: parseFloat($("cw").value) || 2.25, h: parseFloat($("ch").value) || 1.25 };
@@ -770,7 +798,10 @@ if (typeof module !== "undefined") module.exports = { indexOrders, orderKey, isO
 
   function fit(r, s) {
     const m = $("measure");
-    for (let pt = MAX_PT; pt >= MIN_PT; pt -= 0.25) {
+    const fixed = $("fontSize").value !== "auto" ? parseFloat($("fontSize").value) : null;
+    const start = fixed || parseFloat($("maxSize").value) || MAX_PT;
+    const stop = fixed || MIN_PT;
+    for (let pt = start; pt >= stop; pt -= 0.25) {
       m.innerHTML = "";
       const el = buildLabel(r, s, pt);
       el.style.height = "auto";
@@ -783,7 +814,7 @@ if (typeof module !== "undefined") module.exports = { indexOrders, orderKey, isO
       }
     }
     m.innerHTML = "";
-    return { pt: MIN_PT, fits: false };
+    return { pt: fixed || MIN_PT, fits: false };
   }
 
   function render() {
@@ -805,7 +836,9 @@ if (typeof module !== "undefined") module.exports = { indexOrders, orderKey, isO
 
     const hasContent = labelLines(r, opts()).length > 0;
     const list = hasContent ? checks(r, $("raw").value) : [];
-    if (hasContent && !fitInfo.fits) list.unshift({ lvl: "bad", t: "Too much text for this label. Shorten a line or pick a bigger label." });
+    if (hasContent && !fitInfo.fits) list.unshift({ lvl: "bad", t: $("fontSize").value === "auto"
+      ? "Too much text for this label. Shorten a line or pick a bigger label."
+      : `Text doesn’t fit at ${fitInfo.pt} pt. Pick a smaller text size, Auto, or a bigger label.` });
     else if (hasContent && fitInfo.pt < WARN_PT) list.unshift({ lvl: "warn", t: `Text is small (${fitInfo.pt.toFixed(1)} pt). Consider shortening the department.` });
     if (hasContent && !list.length) list.push({ lvl: "ok", t: "Ready to print" });
     $("chips").innerHTML = list.map(c => `<span class="chip ${c.lvl === "ok" ? "" : c.lvl}">${escapeHtml(c.t)}</span>`).join("");
@@ -907,12 +940,13 @@ if (typeof module !== "undefined") module.exports = { indexOrders, orderKey, isO
   });
   $("f-phone").addEventListener("change", () => { $("f-phone").value = normalizePhone($("f-phone").value, $("f-country").value); render(); });
 
-  ["labelSize", "printMode", "cw", "ch", "optEmail", "optOrder", "optRotate", "optClear", "optAuto"].forEach(id => {
+  ["labelSize", "printMode", "cw", "ch", "optEmail", "optOrder", "optRotate", "optClear", "optAuto", "fontSize", "maxSize"].forEach(id => {
     $(id).addEventListener("change", () => {
       store.set("size", $("labelSize").value); store.set("mode", $("printMode").value);
       store.set("cw", $("cw").value); store.set("ch", $("ch").value);
       store.set("email", $("optEmail").checked); store.set("order", $("optOrder").checked);
       store.set("rotate", $("optRotate").checked); store.set("clear", $("optClear").checked); store.set("auto", $("optAuto").checked);
+      store.set("fontSize", $("fontSize").value); store.set("maxSize", $("maxSize").value); syncSizeUI();
       $("customSize").classList.toggle("show", $("labelSize").value === "custom");
       render();
     });
