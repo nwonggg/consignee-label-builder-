@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Twist Bioscience — Consignee Label</title>
+<style>
+  :root{
+    --teal: #3F9F82;
+    --teal-dark: #2D7A63;
+    --ink: #1B1F1D;
+    --paper: #FFFFFF;
+    --mist: #F4F7F6;
+    --line: #D8E0DE;
+    --muted: #5b6763;
+    --field: #FFFFFF;
+    --subtle: #fcfdfd;
+    --danger: #b3312c;
+    --danger-line: #e3c3c0;
+    --chip-ok: #E4F2ED;
+    --chip-warn: #FBF1DF;
+    --warn: #9A6412;
+    --chip-bad: #F8E3E2;
+    color-scheme: light;
+  }
+  :root[data-theme="dark"]{
+    --teal: #4FB896;
+    --teal-dark: #7FD1B5;
+    --ink: #E5ECEA;
+    --paper: #1B2422;
+    --mist: #131A18;
+    --line: #2E3B38;
+    --muted: #9AABA6;
+    --field: #141C1A;
+    --subtle: #18211F;
+    --danger: #F08A84;
+    --danger-line: #5A2F2C;
+    --chip-ok: #1F3A31;
+    --chip-warn: #3A2F18;
+    --warn: #F0C26A;
+    --chip-bad: #3E2120;
+    color-scheme: dark;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--mist);
+    color: var(--ink);
+    padding: 32px 20px 80px;
+  }
+  .wrap{ max-width: 1100px; margin: 0 auto; }
+  .brandbar{
+    height:6px;
+    background: linear-gradient(90deg, var(--teal), var(--teal-dark));
+    border-radius: 4px;
+    margin-bottom:18px;
+  }
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom: 28px; flex-wrap: wrap; gap:12px;
+  }
+  header .title h1{ font-size: 20px; margin:0 0 2px; letter-spacing:0.2px; }
+  header .title p{ margin:0; font-size:13px; color:var(--muted); }
+  header .right{ display:flex; align-items:center; gap:16px; }
+  header .logo{ font-weight:700; letter-spacing:6px; font-size:15px; color: var(--ink); }
+  header .logo span{ color: var(--teal); }
+
+  .layout{ display:grid; grid-template-columns: minmax(0,1fr) minmax(0,420px); gap:18px; align-items:start; }
+  @media (max-width: 900px){ .layout{ grid-template-columns: 1fr; } }
+  .side{ position: sticky; top: 16px; }
+
+  .card{
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+  }
+  .card h2{
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--teal-dark); margin: 0 0 14px;
+  }
+  .grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap: 14px 18px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field.full{ grid-column: 1 / -1; }
+  label{ font-size:12px; color:var(--muted); font-weight:600; }
+  input[type=text], input[type=number], textarea, select{
+    border:1px solid var(--line); border-radius:6px; padding:8px 10px;
+    font-size:13.5px; font-family:inherit; background:var(--field); color:var(--ink); width:100%;
+  }
+  textarea{ resize: vertical; min-height:70px; }
+  #raw{ min-height:130px; }
+  input:focus, textarea:focus, select:focus, .btn:focus-visible, .drop:focus-visible{
+    outline: 2px solid var(--teal); outline-offset:1px; border-color:var(--teal);
+  }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    font-size:13px; font-weight:600; padding:8px 14px; border-radius:6px;
+    border:1px solid var(--line); background:var(--field); color:var(--ink); cursor:pointer; font-family:inherit;
+  }
+  .btn:hover{ border-color: var(--teal); color: var(--teal-dark); }
+  .btn.primary{ background: var(--teal); border-color: var(--teal); color:#fff; }
+  .btn.primary:hover{ background: var(--teal-dark); border-color: var(--teal-dark); color:#fff; }
+  :root[data-theme="dark"] .btn.primary, :root[data-theme="dark"] .btn.primary:hover{ color:#0E2A21; }
+  .btn.primary:disabled{ opacity:.45; cursor:not-allowed; }
+  .btn.small{ font-size:12px; padding:6px 10px; }
+  .btn.danger{ color:var(--danger); border-color:var(--danger-line); }
+  .btn.danger:hover{ background:var(--danger); border-color:var(--danger); color:#fff; }
+  .btn.big{ flex:1; font-size:14px; padding:11px 14px; }
+
+  .actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .hint{ font-size:12px; color:var(--muted); margin:0 0 12px; }
+  .status{ font-size:13px; color: var(--teal-dark); font-weight:600; min-height:1.2em; margin-top:10px; }
+  .drop{
+    margin-top:10px; border:1.5px dashed var(--line); border-radius:6px; background:var(--subtle);
+    padding:10px 12px; color:var(--muted); font-size:12.5px; cursor:pointer; text-align:center;
+  }
+  .drop.over{ border-color: var(--teal); color: var(--teal-dark); }
+
+  .preview-stage{
+    background: var(--subtle); border:1px solid var(--line); border-radius:8px; padding:18px;
+    display:flex; justify-content:center; align-items:center; overflow:hidden;
+  }
+  .preview-frame{ position: relative; flex: none; }
+  .preview-scale{ position: absolute; left: 0; top: 0; transform-origin: top left; }
+  .size-note{ font-size:12px; color:var(--muted); margin-top:8px; text-align:center; }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+  .chip{ font-size:12px; font-weight:600; padding:3px 9px; border-radius:999px; background:var(--chip-ok); color:var(--teal-dark); }
+  .chip.warn{ background:var(--chip-warn); color:var(--warn); }
+  .chip.bad{ background:var(--chip-bad); color:var(--danger); }
+
+  .check{ display:flex; gap:8px; align-items:flex-start; font-size:13px; font-weight:400; color:var(--ink); grid-column:1 / -1; }
+  .check input{ width:15px; height:15px; margin-top:1px; accent-color: var(--teal); flex:none; }
+  .custom-size{ display:none; grid-column:1 / -1; gap:14px; }
+  .custom-size.show{ display:flex; }
+  .custom-size .field{ flex:1; }
+  .kbd{ font-size:12px; color:var(--muted); margin-top:8px; }
+  .kbd kbd{ border:1px solid var(--line); border-radius:4px; padding:0 5px; font-family:inherit; font-size:11.5px; }
+
+  /* The label itself: real size in inches, printed as-is */
+  .label{
+    background:#fff; color:#000; overflow:hidden; position:relative;
+    font-family: Arial, Helvetica, sans-serif; line-height:1.18;
+    box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  }
+  .label .ln{ white-space: normal; overflow-wrap: anywhere; }
+  .label .b{ font-weight:700; }
+  .label .ref{ margin-top:.25em; font-size:.82em; }
+  .label.empty{ display:flex; align-items:center; justify-content:center; color:#8a9a96; }
+  #measure{ position:absolute; left:-9999px; top:0; visibility:hidden; }
+  #printArea{ display:none; }
+
+  @media print{
+    body{ padding:0 !important; }
+    body > *:not(#printArea){ display:none !important; }
+    #printArea{ display:block !important; }
+    #printArea .label{ box-shadow:none; }
+    html, body{ background:#fff !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar"></div>
+  <header>
+    <div class="title">
+      <h1>Consignee Label</h1>
+      <p>Scan, paste, or screenshot a ship-to address and print a standardized dry ice consignee sticker.</p>
+    </div>
+    <div class="right">
+      <div class="logo">T W I S T <span>·</span> BIOSCIENCE</div>
+      <button class="btn small" id="themeToggle" type="button" aria-label="Toggle light or dark mode">Dark mode</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div>
+      <div class="card">
+        <h2>Address Input</h2>
+        <p class="hint">Scan the packing slip QR, paste the address, or paste a screenshot (⌘V / Ctrl+V). Fields fill in automatically.</p>
+        <textarea id="raw" spellcheck="false" autofocus placeholder="Universität Zürich&#10;Institut für medizinische Genetik&#10;12 Wagistrasse&#10;8952 Schlieren&#10;Switzerland&#10;phone: 41445563341"></textarea>
+        <div class="drop" id="drop" tabindex="0" role="button" aria-label="Upload a screenshot of the address">Drop a screenshot here or click to choose one</div>
+        <input type="file" id="file" accept="image/*" hidden>
+        <div class="status" id="status" aria-live="polite"></div>
+      </div>
+
+      <div class="card">
+        <h2>Consignee Details</h2>
+        <div class="grid">
+          <div class="field"><label for="f-contact">Contact Person</label><input type="text" id="f-contact"></div>
+          <div class="field"><label for="f-order">Order / SO #</label><input type="text" id="f-order"></div>
+          <div class="field full"><label for="f-institution">Institution / Company</label><input type="text" id="f-institution"></div>
+          <div class="field full"><label for="f-department">Department</label><input type="text" id="f-department"></div>
+          <div class="field full"><label for="f-street">Street</label><input type="text" id="f-street"></div>
+          <div class="field full"><label for="f-street2">Street Line 2</label><input type="text" id="f-street2"></div>
+          <div class="field"><label for="f-postal">Postal Code</label><input type="text" id="f-postal"></div>
+          <div class="field"><label for="f-city">City</label><input type="text" id="f-city"></div>
+          <div class="field"><label for="f-state">State / Region</label><input type="text" id="f-state"></div>
+          <div class="field"><label for="f-country">Country</label><input type="text" id="f-country" list="countryList"></div>
+          <div class="field"><label for="f-phone">Phone</label><input type="text" id="f-phone"></div>
+          <div class="field"><label for="f-email">Email</label><input type="text" id="f-email"></div>
+        </div>
+        <datalist id="countryList"></datalist>
+      </div>
+
+      <div class="card">
+        <h2>Address Lookup</h2>
+        <p class="hint">The packing slip QR holds only the order number. Load an order export, or connect an Apps Script lookup, and scans fill in the address.</p>
+        <div class="actions">
+          <button class="btn" id="csvBtn" type="button">Load Order Export (CSV)…</button>
+          <button class="btn danger" id="csvClear" type="button">Remove</button>
+        </div>
+        <input type="file" id="csvFile" accept=".csv,.tsv,.txt" hidden>
+        <div class="status" id="csvStatus"></div>
+        <div class="field" style="margin-top:12px">
+          <label for="scriptUrl">Apps Script Lookup URL (optional)</label>
+          <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/…/exec" spellcheck="false">
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <h2>Label Preview</h2>
+        <div class="preview-stage" id="stage"><div class="preview-frame" id="previewFrame"><div class="preview-scale" id="previewScale"></div></div></div>
+        <div class="size-note" id="sizeNote"></div>
+        <div class="chips" id="chips"></div>
+      </div>
+
+      <div class="card">
+        <h2>Print Settings</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="labelSize">Label Size</label>
+            <select id="labelSize">
+              <option value="2.25x1.25">Dymo 30334 · 2¼ × 1¼ in</option>
+              <option value="2.125x1">Dymo 30336 · 2⅛ × 1 in</option>
+              <option value="3.5x1.125">Dymo 30252 · 3½ × 1⅛ in</option>
+              <option value="4x2.3125">Dymo 30256 · 4 × 2-5/16 in</option>
+              <option value="custom">Custom size</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="printMode">Print To</label>
+            <select id="printMode">
+              <option value="label">Dymo label</option>
+              <option value="paper">Paper test (cut out)</option>
+            </select>
+          </div>
+          <div class="custom-size" id="customSize">
+            <div class="field"><label for="cw">Width (in)</label><input type="number" id="cw" step="0.0625" min="0.75" value="2.25"></div>
+            <div class="field"><label for="ch">Height (in)</label><input type="number" id="ch" step="0.0625" min="0.5" value="1.25"></div>
+          </div>
+          <label class="check"><input type="checkbox" id="optEmail"> Print email on label</label>
+          <label class="check"><input type="checkbox" id="optOrder"> Print order # on label</label>
+          <label class="check"><input type="checkbox" id="optRotate"> Rotate 90° when printing (if the printer feeds the label sideways)</label>
+          <label class="check"><input type="checkbox" id="optAuto"> Print automatically after reading a screenshot, if nothing is missing</label>
+          <label class="check"><input type="checkbox" id="optClear" checked> Clear and get ready for the next scan after printing</label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn danger" id="clearBtn" type="button">Clear</button>
+        <button class="btn primary big" id="printBtn" type="button">Print Label</button>
+      </div>
+      <div class="kbd"><kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>Enter</kbd> prints. In the print dialog, set scale to 100% and margins to none.</div>
+    </div>
+  </div>
+</div>
+
+<div id="measure"></div>
+<div id="printArea"></div>
+<style id="pageStyle"></style>
+
+<script id="parser">
+/* ---------- Address parsing and formatting (pure functions) ---------- */
+const COUNTRIES = [
+  { code: "US", name: "UNITED STATES", dial: "1", fmt: "us", alias: ["usa", "us", "u.s.", "u.s.a.", "united states", "united states of america", "america"] },
+  { code: "CA", name: "CANADA", dial: "1", fmt: "ca", alias: ["canada"] },
+  { code: "GB", name: "UNITED KINGDOM", dial: "44", fmt: "uk", alias: ["uk", "u.k.", "gb", "great britain", "united kingdom", "england", "scotland", "wales", "northern ireland"] },
+  { code: "IE", name: "IRELAND", dial: "353", fmt: "uk", alias: ["ireland", "eire"] },
+  { code: "CH", name: "SWITZERLAND", dial: "41", fmt: "eu", alias: ["switzerland", "schweiz", "suisse", "svizzera", "ch"] },
+  { code: "DE", name: "GERMANY", dial: "49", fmt: "eu", alias: ["germany", "deutschland", "de"] },
+  { code: "AT", name: "AUSTRIA", dial: "43", fmt: "eu", alias: ["austria", "österreich", "osterreich"] },
+  { code: "FR", name: "FRANCE", dial: "33", fmt: "eu", alias: ["france", "fr"] },
+  { code: "IT", name: "ITALY", dial: "39", fmt: "eu", alias: ["italy", "italia"] },
+  { code: "ES", name: "SPAIN", dial: "34", fmt: "eu", alias: ["spain", "españa", "espana"] },
+  { code: "PT", name: "PORTUGAL", dial: "351", fmt: "eu", alias: ["portugal"] },
+  { code: "NL", name: "NETHERLANDS", dial: "31", fmt: "eu", alias: ["netherlands", "the netherlands", "holland", "nederland", "nl"] },
+  { code: "BE", name: "BELGIUM", dial: "32", fmt: "eu", alias: ["belgium", "belgique", "belgië", "belgie"] },
+  { code: "LU", name: "LUXEMBOURG", dial: "352", fmt: "eu", alias: ["luxembourg"] },
+  { code: "DK", name: "DENMARK", dial: "45", fmt: "eu", alias: ["denmark", "danmark"] },
+  { code: "SE", name: "SWEDEN", dial: "46", fmt: "eu", alias: ["sweden", "sverige"] },
+  { code: "NO", name: "NORWAY", dial: "47", fmt: "eu", alias: ["norway", "norge"] },
+  { code: "FI", name: "FINLAND", dial: "358", fmt: "eu", alias: ["finland", "suomi"] },
+  { code: "PL", name: "POLAND", dial: "48", fmt: "eu", alias: ["poland", "polska"] },
+  { code: "CZ", name: "CZECH REPUBLIC", dial: "420", fmt: "eu", alias: ["czech republic", "czechia"] },
+  { code: "HU", name: "HUNGARY", dial: "36", fmt: "eu", alias: ["hungary"] },
+  { code: "GR", name: "GREECE", dial: "30", fmt: "eu", alias: ["greece"] },
+  { code: "IL", name: "ISRAEL", dial: "972", fmt: "cityfirst", alias: ["israel"] },
+  { code: "AE", name: "UNITED ARAB EMIRATES", dial: "971", fmt: "cityfirst", alias: ["united arab emirates", "uae", "u.a.e."] },
+  { code: "IN", name: "INDIA", dial: "91", fmt: "cityfirst", alias: ["india"] },
+  { code: "SG", name: "SINGAPORE", dial: "65", fmt: "cityfirst", alias: ["singapore"] },
+  { code: "CN", name: "CHINA", dial: "86", fmt: "cityfirst", alias: ["china", "p.r. china", "pr china", "people's republic of china"] },
+  { code: "HK", name: "HONG KONG", dial: "852", fmt: "cityfirst", alias: ["hong kong"] },
+  { code: "TW", name: "TAIWAN", dial: "886", fmt: "cityfirst", alias: ["taiwan"] },
+  { code: "JP", name: "JAPAN", dial: "81", fmt: "cityfirst", alias: ["japan"] },
+  { code: "KR", name: "SOUTH KOREA", dial: "82", fmt: "cityfirst", alias: ["south korea", "korea", "republic of korea"] },
+  { code: "AU", name: "AUSTRALIA", dial: "61", fmt: "au", alias: ["australia"] },
+  { code: "NZ", name: "NEW ZEALAND", dial: "64", fmt: "cityfirst", alias: ["new zealand"] },
+  { code: "BR", name: "BRAZIL", dial: "55", fmt: "eu", alias: ["brazil", "brasil"] },
+  { code: "MX", name: "MEXICO", dial: "52", fmt: "eu", alias: ["mexico", "méxico"] }
+];
+
+function norm(s) { return (s || "").toLowerCase().replace(/\s+/g, " ").trim(); }
+
+function findCountry(text) {
+  const t = norm(text).replace(/[.,;]+$/, "");
+  if (!t) return null;
+  for (const c of COUNTRIES) {
+    if (c.code.toLowerCase() === t && text.trim() === text.trim().toUpperCase()) return c;
+    if (c.name.toLowerCase() === t) return c;
+    if (c.alias.some(a => a.length > 2 && a === t)) return c;
+  }
+  return null;
+}
+
+const RE_EMAIL = /[^\s@<>()]+@[^\s@<>()]+\.[a-z]{2,}/i;
+const RE_PHONE_LABEL = /^(phone|tel|telephone|ph|mobile|mob|cell|fax)\b\.?\s*[:#]?\s*/i;
+const RE_STREET = /(stra(ss|ß)e|str\.|strasse\b|street|\bst\.?$|\bst\b|road|\brd\b|avenue|\bave\b|boulevard|blvd|drive|\bdr\b|lane|\bln\b|way\b|weg\b|gasse|platz|allee|ring\b|rue\b|chemin|via\b|viale|calle|avenida|plaza|straat|laan|vej\b|gatan|gata|court|\bct\b|place|\bpl\b|parkway|pkwy|highway|hwy|suite|floor|building|bldg|campus)/i;
+const RE_POBOX = /\b(p\.?\s?o\.?\s?box|postfach|case postale|postbus|box \d)/i;
+const RE_ORG = /(universit|institutet|institutt|università|universidad|universidade|college|hospital|klinik|clinic|spital|\binc\b|\bltd\b|limited|gmbh|\bag\b|s\.a\.|\bsa\b|b\.v\.|\bbv\b|\bllc\b|corp|company|pharma|biotech|bioscience|therapeutics|foundation|stiftung|\beth\b|epfl|max planck|fraunhofer|helmholtz|inserm|cnrs|\bnih\b|medical cent|centre hospitalier)/i;
+const RE_DEPT = /(department|\bdept\b|institut\b|institute|abteilung|division|faculty|fakultät|school of|\blab\b|laboratory|labor\b|group|\bunit\b|core facility|facility|klinik für|attn)/i;
+const RE_ORDER = /^(?:sales order|order|so|po|ref|reference)\s*(?:no\.?|number|#)?\s*[:#]?\s*([A-Z0-9-]{4,})$/i;
+
+function isOrderNumber(t) { return /^[A-Z]{0,4}[-#]?\d{6,12}$/i.test((t || "").trim()); }
+function orderKey(t) { return (t || "").trim().toUpperCase().replace(/^[A-Z]{0,4}[-#]?/, "").replace(/^0+/, ""); }
+
+function digitsOf(s) { return (s || "").replace(/\D/g, ""); }
+
+function looksLikePhone(line) {
+  if (RE_PHONE_LABEL.test(line)) return true;
+  if (!/^\+?[\d\s().\-\/]+$/.test(line)) return false;
+  const d = digitsOf(line);
+  return d.length >= 8;
+}
+
+const KEY_MAP = {
+  contact: ["name 3", "name3", "contact person", "name", "contact", "contact name", "attn", "attention", "recipient", "consignee", "ship to name", "first last"],
+  institution: ["name 1", "name1", "ship-to name", "ship-to party name", "company", "institution", "organization", "organisation", "org", "account", "customer", "ship to", "shipto"],
+  department: ["name 2", "name2", "department", "dept", "lab", "division"],
+  houseno: ["house number", "house no", "house no.", "house num"],
+  street: ["street", "address", "address1", "address 1", "address line 1", "street1", "addr1"],
+  street2: ["address2", "address 2", "address line 2", "street2", "addr2", "suite", "building"],
+  postal: ["zip", "zip code", "postal", "postal code", "postcode", "plz"],
+  city: ["city", "town", "ort"],
+  state: ["state", "region", "province", "county"],
+  country: ["country", "land", "country code", "country key", "ctry", "ship-to country"],
+  phone: ["phone", "tel", "telephone", "telephone 1", "telephone number", "mobile", "phone number"],
+  email: ["email", "e-mail", "mail"],
+  order: ["order", "order #", "order number", "order id", "so", "so #", "so number", "sales order", "sales order number", "sales document", "sales doc", "document", "po", "ref", "reference"]
+};
+
+function mapKey(k) {
+  const key = norm(k).replace(/[_.]/g, " ").replace(/\s+/g, " ");
+  for (const [field, keys] of Object.entries(KEY_MAP)) if (keys.includes(key)) return field;
+  return null;
+}
+
+function emptyRecord() {
+  return { contact: "", institution: "", department: "", street: "", street2: "", postal: "", city: "", state: "", country: "", phone: "", email: "", order: "" };
+}
+
+function fromKeyed(pairs) {
+  const r = emptyRecord();
+  let hits = 0, houseno = "";
+  for (const [k, v] of pairs) {
+    const f = mapKey(k);
+    if (f === "houseno") { houseno = String(v || "").trim(); continue; }
+    if (f && v != null && String(v).trim()) { r[f] = r[f] ? r[f] + ", " + String(v).trim() : String(v).trim(); hits++; }
+  }
+  if (houseno && r.street && !r.street.includes(houseno)) {
+    const c = countryInfo(normalizeCountry(r.country));
+    r.street = c && ["us", "ca", "au", "uk", "cityfirst"].includes(c.fmt) ? houseno + " " + r.street : r.street + " " + houseno;
+  }
+  return hits >= 2 ? r : null;
+}
+
+function splitLines(raw) {
+  let text = (raw || "").replace(/\r/g, "").replace(/\u00a0/g, " ");
+  let lines = text.split("\n").map(s => s.trim()).filter(Boolean);
+  if (lines.length === 1) {
+    const one = lines[0];
+    if (/[|;\t]/.test(one)) lines = one.split(/[|;\t]/).map(s => s.trim()).filter(Boolean);
+    else if ((one.match(/,/g) || []).length >= 3) lines = one.split(",").map(s => s.trim()).filter(Boolean);
+  } else {
+    lines = lines.flatMap(l => /\|/.test(l) ? l.split("|").map(s => s.trim()).filter(Boolean) : [l]);
+  }
+  return lines;
+}
+
+function parseAddress(raw) {
+  const text = (raw || "").trim();
+  if (!text) return emptyRecord();
+  if (isOrderNumber(text)) { const o = emptyRecord(); o.order = text; return o; }
+
+  // 1. JSON
+  if (/^[{\[]/.test(text)) {
+    try {
+      let obj = JSON.parse(text);
+      if (Array.isArray(obj)) obj = obj[0];
+      const flat = [];
+      (function walk(o) { for (const [k, v] of Object.entries(o || {})) { if (v && typeof v === "object") walk(v); else flat.push([k, v]); } })(obj);
+      const r = fromKeyed(flat);
+      if (r) return finalize(r);
+    } catch (e) { /* not JSON */ }
+  }
+
+  const lines = splitLines(text);
+
+  // 2. key: value lines
+  const kv = lines.map(l => l.match(/^\s*([A-Za-z][A-Za-z #._-]{1,24}?)\s*[:=]\s*(.+)$/)).filter(Boolean);
+  if (kv.length >= 2 && kv.filter(m => mapKey(m[1])).length >= 2) {
+    const r = fromKeyed(kv.map(m => [m[1], m[2]]));
+    if (r) return finalize(r);
+  }
+
+  // 3. Free-form lines
+  const r = emptyRecord();
+  const rest = [];
+  for (let line of lines) {
+    const em = line.match(RE_EMAIL);
+    if (em) {
+      r.email = r.email || em[0];
+      line = line.replace(em[0], "").replace(/^(e-?mail)\s*[:]?\s*/i, "").trim();
+      if (!line) continue;
+    }
+    const ord = line.match(RE_ORDER);
+    if (ord) { r.order = r.order || ord[1]; continue; }
+    if (looksLikePhone(line)) { r.phone = r.phone || line.replace(RE_PHONE_LABEL, "").trim(); continue; }
+    const c = findCountry(line);
+    if (c && !r.country) { r.country = c.name; continue; }
+    // "..., Switzerland" at line end
+    const tail = line.match(/^(.*),\s*([^,]+)$/);
+    if (tail && findCountry(tail[2]) && !r.country) { r.country = findCountry(tail[2]).name; line = tail[1].trim(); }
+    rest.push(line);
+  }
+
+  const used = new Array(rest.length).fill(false);
+  let lonePostalIdx = -1;
+
+  rest.forEach((line, i) => {
+    let m;
+    if ((m = line.match(/^(.+?),?\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/))) {
+      r.city = m[1].replace(/,$/, ""); r.state = m[2]; r.postal = m[3]; used[i] = true;
+      if (!r.country) r.country = "UNITED STATES";
+      return;
+    }
+    if ((m = line.match(/^(.+?),?\s+([A-Z]{2})\s+([A-Z]\d[A-Z]\s?\d[A-Z]\d)$/i))) {
+      r.city = m[1].replace(/,$/, ""); r.state = m[2].toUpperCase(); r.postal = m[3].toUpperCase(); used[i] = true;
+      if (!r.country) r.country = "CANADA";
+      return;
+    }
+    if (/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(line)) { r.postal = line.toUpperCase(); used[i] = true; return; }
+    if (RE_POBOX.test(line)) return;
+    if (RE_STREET.test(line) && /\d/.test(line)) return; // handled as street below
+    if ((m = line.match(/^(?:[A-Z]{1,2}[- ])?(\d{3}\s\d{2})\s+([^\d].*)$/)) && !r.postal) {
+      r.postal = m[1]; r.city = m[2]; used[i] = true; return;
+    }
+    if ((m = line.match(/^(?:[A-Z]{1,2}[- ])?(\d{4,6}(?:-\d{3,4})?)\s+([^\d].*)$/))) {
+      if (!r.postal) { r.postal = m[1]; r.city = m[2]; used[i] = true; return; }
+    }
+    if ((m = line.match(/^([^\d,]+?),?\s+(\d{4,6}(?:-\d{3,4})?)$/)) && !RE_ORG.test(line) && !RE_DEPT.test(line)) {
+      if (!r.postal) { r.city = m[1]; r.postal = m[2]; used[i] = true; return; }
+    }
+    if (/^(?:[A-Z]{1,2}-)?\d{4,6}(?:-\d{3,4})?$/.test(line)) {
+      if (!r.postal) { r.postal = line.replace(/^[A-Z]{1,2}-/, ""); used[i] = true; lonePostalIdx = i; }
+    }
+  });
+
+  rest.forEach((line, i) => {
+    if (used[i]) return;
+    const streety = (RE_STREET.test(line) && /\d/.test(line)) || /^\d+[a-z]?\s+[^\d\s]/i.test(line) || /^[^\d]{3,}\s\d+[a-z]?(\s*[-\/]\s*\d+)?$/i.test(line);
+    if (RE_POBOX.test(line) || (streety && !RE_ORG.test(line) && !RE_DEPT.test(line))) {
+      if (!r.street) r.street = line; else if (!r.street2) r.street2 = line; else r.street2 += ", " + line;
+      used[i] = true;
+    }
+  });
+
+  rest.forEach((line, i) => {
+    if (used[i]) return;
+    if (RE_ORG.test(line) && !r.institution) { r.institution = line; used[i] = true; }
+  });
+  rest.forEach((line, i) => {
+    if (used[i]) return;
+    if (RE_DEPT.test(line)) {
+      if (!r.department) r.department = line;
+      else if (!r.institution) r.institution = line;
+      else r.department += ", " + line;
+      used[i] = true;
+    }
+  });
+
+  // City next to a lone postal code (e.g. "Schlieren" / "8952")
+  if (lonePostalIdx >= 0 && !r.city) {
+    for (const j of [lonePostalIdx - 1, lonePostalIdx + 1]) {
+      if (j >= 0 && j < rest.length && !used[j] && !/\d/.test(rest[j]) && rest[j].split(/\s+/).length <= 4) {
+        r.city = rest[j]; used[j] = true; break;
+      }
+    }
+  }
+
+  // Leftovers: a person-like line becomes the contact, then fill institution / department
+  rest.forEach((line, i) => {
+    if (used[i]) return;
+    const words = line.split(/\s+/);
+    const personish = !/\d/.test(line) && words.length >= 2 && words.length <= 4 && words.every(w => /^[A-ZÀ-Ý][\p{L}'.-]*$/u.test(w) || /^(van|von|de|der|da|di|del|la|le)$/i.test(w));
+    if (personish && !r.contact && !RE_ORG.test(line) && !RE_DEPT.test(line)) { r.contact = line; used[i] = true; return; }
+    if (!r.institution) r.institution = line;
+    else if (!r.department) r.department = line;
+    else if (!r.city && !/\d/.test(line)) r.city = line;
+    else r.street2 = r.street2 ? r.street2 + ", " + line : line;
+    used[i] = true;
+  });
+
+  if (!r.institution && r.department) { r.institution = r.department; r.department = ""; }
+  return finalize(r);
+}
+
+function normalizeCountry(v) {
+  if (!v) return "";
+  const c = findCountry(v) || COUNTRIES.find(x => x.code === v.trim().toUpperCase());
+  return c ? c.name : v.trim().toUpperCase();
+}
+
+function countryInfo(name) { return COUNTRIES.find(c => c.name === name) || null; }
+
+function normalizePhone(raw, countryName) {
+  if (!raw) return "";
+  let s = raw.replace(RE_PHONE_LABEL, "").trim();
+  const ext = s.match(/\s*(?:ext\.?|x)\s*(\d+)$/i);
+  if (ext) s = s.slice(0, ext.index);
+  const plus = /^\s*\+/.test(s);
+  let d = digitsOf(s);
+  if (!d) return raw.trim();
+  const c = countryInfo(countryName);
+  let out;
+  if (plus) {
+    out = "+" + d;
+    if (c && d.startsWith(c.dial)) out = "+" + c.dial + " " + d.slice(c.dial.length).replace(/^0/, "");
+  } else if (d.startsWith("00")) {
+    d = d.slice(2);
+    out = c && d.startsWith(c.dial) ? "+" + c.dial + " " + d.slice(c.dial.length) : "+" + d;
+  } else if (c && c.dial === "1" && d.length === 10) {
+    out = "+1 " + d.slice(0, 3) + " " + d.slice(3, 6) + " " + d.slice(6);
+  } else if (c && c.dial === "1" && d.length === 11 && d.startsWith("1")) {
+    out = "+1 " + d.slice(1, 4) + " " + d.slice(4, 7) + " " + d.slice(7);
+  } else if (c && d.startsWith(c.dial) && d.length >= c.dial.length + 8) {
+    out = "+" + c.dial + " " + d.slice(c.dial.length).replace(/^0/, "");
+  } else if (c && d.startsWith("0")) {
+    out = "+" + c.dial + " " + d.slice(1);
+  } else if (c) {
+    out = "+" + c.dial + " " + d;
+  } else {
+    out = d;
+  }
+  return out + (ext ? " ext " + ext[1] : "");
+}
+
+function finalize(r) {
+  for (const k of Object.keys(r)) r[k] = (r[k] || "").replace(/\s+/g, " ").replace(/^[,;\s]+|[,;\s]+$/g, "");
+  r.country = normalizeCountry(r.country);
+  r.phone = normalizePhone(r.phone, r.country);
+  if (r.postal && /[a-z]/i.test(r.postal)) r.postal = r.postal.toUpperCase();
+  return r;
+}
+
+function cityLines(r) {
+  const c = countryInfo(r.country);
+  const fmt = c ? c.fmt : "eu";
+  const city = r.city, pc = r.postal, st = r.state;
+  if (!city && !pc && !st) return [];
+  switch (fmt) {
+    case "us": return [[city ? city + "," : "", st, pc].filter(Boolean).join(" ").replace(/,$/, "")];
+    case "ca":
+    case "au": return [[city, st, pc].filter(Boolean).join(" ")];
+    case "uk": return [city, st, pc].filter(Boolean);
+    case "cityfirst": return [[city, pc].filter(Boolean).join(" ")].concat(st ? [st] : []);
+    default: return [[pc, city].filter(Boolean).join(" ")].concat(st ? [st] : []);
+  }
+}
+
+function labelLines(r, opts) {
+  const L = [];
+  if (r.contact) L.push({ t: r.contact, b: true });
+  if (r.institution) L.push({ t: r.institution, b: !r.contact });
+  if (r.department) L.push({ t: r.department });
+  if (r.street) L.push({ t: r.street });
+  if (r.street2) L.push({ t: r.street2 });
+  cityLines(r).forEach(t => L.push({ t }));
+  if (r.country) L.push({ t: r.country, b: true });
+  if (r.phone) L.push({ t: "Tel " + r.phone });
+  if (opts.email && r.email) L.push({ t: r.email });
+  if (opts.order && r.order) L.push({ t: "Ref " + r.order, ref: true });
+  return L;
+}
+
+function checks(r, raw) {
+  const out = [];
+  const garbled = /\uFFFD/.test(raw) || /[A-Za-z]\?[A-Za-z]/.test(raw);
+  if (garbled) out.push({ lvl: "bad", t: "Some characters came through as “?”. Check the scanner’s Unicode setting." });
+  if (!r.institution && !r.contact) out.push({ lvl: "warn", t: "No name or institution" });
+  if (!r.street) out.push({ lvl: "warn", t: "No street" });
+  if (!r.postal) out.push({ lvl: "warn", t: "No postal code" });
+  if (!r.city) out.push({ lvl: "warn", t: "No city" });
+  if (!r.country) out.push({ lvl: "bad", t: "No country" });
+  else if (!countryInfo(r.country)) out.push({ lvl: "warn", t: "Country not in list, check spelling" });
+  if (!r.phone) out.push({ lvl: "warn", t: "No phone" });
+  if (!r.contact && r.institution) out.push({ lvl: "warn", t: "No contact person" });
+  return out;
+}
+
+function parseCSV(text) {
+  text = text.replace(/^\uFEFF/, "");
+  const first = text.split("\n")[0];
+  const delim = [",", ";", "\t"].sort((a, b) => first.split(b).length - first.split(a).length)[0];
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') q = false;
+      else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === delim) { row.push(cell); cell = ""; }
+    else if (ch === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+    else if (ch !== "\r") cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim()));
+}
+
+function indexOrders(text) {
+  const rows = parseCSV(text);
+  if (rows.length < 2) throw new Error("The file has no data rows.");
+  const head = rows[0].map(h => h.trim());
+  const orderCol = head.findIndex(h => mapKey(h) === "order");
+  if (orderCol < 0) throw new Error("No order number column found. Name it “Order”, “Sales Order”, or “Sales Document”.");
+  const index = {};
+  for (const row of rows.slice(1)) {
+    const key = orderKey(row[orderCol]);
+    if (!key) continue;
+    const rec = fromKeyed(head.map((h, i) => [h, row[i]]));
+    if (rec) index[key] = finalize(rec);
+  }
+  return index;
+}
+
+if (typeof module !== "undefined") module.exports = { indexOrders, orderKey, isOrderNumber, parseAddress, labelLines, cityLines, normalizePhone, checks, COUNTRIES };
+</script>
+
+<script>
+/* ---------- UI ---------- */
+(function () {
+  const $ = id => document.getElementById(id);
+  const FIELDS = ["contact", "order", "institution", "department", "street", "street2", "postal", "city", "state", "country", "phone", "email"];
+  const PX_PER_IN = 96;
+  const MAX_PT = 10, MIN_PT = 5.5, WARN_PT = 7;
+  const PAD_IN = 0.07;
+  let fitInfo = { pt: MAX_PT, fits: true };
+  let debounceTimer = null;
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("consigneeLabel:" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem("consigneeLabel:" + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+  };
+
+  // Theme
+  function applyTheme(t) {
+    document.documentElement.setAttribute("data-theme", t);
+    $("themeToggle").textContent = t === "dark" ? "Light mode" : "Dark mode";
+  }
+  const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  applyTheme(store.get("theme", prefersDark ? "dark" : "light"));
+  $("themeToggle").addEventListener("click", () => {
+    const t = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    applyTheme(t); store.set("theme", t);
+  });
+
+  // Country list
+  $("countryList").innerHTML = COUNTRIES.map(c => `<option value="${c.name}">`).join("");
+
+  // Settings
+  $("labelSize").value = store.get("size", "2.25x1.25");
+  $("printMode").value = store.get("mode", "label");
+  $("cw").value = store.get("cw", 2.25);
+  $("ch").value = store.get("ch", 1.25);
+  $("optEmail").checked = store.get("email", false);
+  $("optOrder").checked = store.get("order", false);
+  $("optRotate").checked = store.get("rotate", false);
+  $("optClear").checked = store.get("clear", true);
+  $("optAuto").checked = store.get("auto", false);
+
+  function size() {
+    if ($("labelSize").value === "custom") return { w: parseFloat($("cw").value) || 2.25, h: parseFloat($("ch").value) || 1.25 };
+    const [w, h] = $("labelSize").value.split("x").map(Number);
+    return { w, h };
+  }
+  function opts() { return { email: $("optEmail").checked, order: $("optOrder").checked }; }
+  function record() { const r = {}; FIELDS.forEach(f => r[f] = $("f-" + f).value.trim()); return r; }
+  function escapeHtml(s) { return s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+  function buildLabel(r, s, pt) {
+    const el = document.createElement("div");
+    el.className = "label";
+    el.style.width = s.w + "in";
+    el.style.height = s.h + "in";
+    el.style.padding = PAD_IN + "in " + (PAD_IN + 0.03) + "in";
+    el.style.fontSize = pt + "pt";
+    const lines = labelLines(r, opts());
+    if (!lines.length) {
+      el.classList.add("empty");
+      el.textContent = "Scan or paste an address";
+      return el;
+    }
+    el.innerHTML = lines.map(l => `<div class="ln${l.b ? " b" : ""}${l.ref ? " ref" : ""}">${escapeHtml(l.t)}</div>`).join("");
+    return el;
+  }
+
+  function fit(r, s) {
+    const m = $("measure");
+    for (let pt = MAX_PT; pt >= MIN_PT; pt -= 0.25) {
+      m.innerHTML = "";
+      const el = buildLabel(r, s, pt);
+      el.style.height = "auto";
+      m.appendChild(el);
+      const need = el.scrollHeight;
+      const lines = [...el.querySelectorAll(".ln")];
+      const avail = s.h * PX_PER_IN;
+      if (need <= avail + 0.5 && lines.every(l => l.scrollWidth <= l.clientWidth + 0.5)) {
+        m.innerHTML = ""; return { pt, fits: true };
+      }
+    }
+    m.innerHTML = "";
+    return { pt: MIN_PT, fits: false };
+  }
+
+  function render() {
+    const r = record();
+    const s = size();
+    fitInfo = fit(r, s);
+    const label = buildLabel(r, s, fitInfo.pt);
+    const holder = $("previewScale");
+    holder.innerHTML = "";
+    holder.appendChild(label);
+    const stageW = $("stage").clientWidth - 36;
+    const scale = Math.min(2.6, stageW / (s.w * PX_PER_IN));
+    holder.style.transform = `scale(${scale})`;
+    holder.style.width = s.w * PX_PER_IN + "px";
+    holder.style.height = s.h * PX_PER_IN + "px";
+    $("previewFrame").style.width = s.w * PX_PER_IN * scale + "px";
+    $("previewFrame").style.height = s.h * PX_PER_IN * scale + "px";
+    $("sizeNote").textContent = `${s.w} × ${s.h} in at ${Math.round(scale * 100)}% · text ${fitInfo.pt.toFixed(1)} pt`;
+
+    const hasContent = labelLines(r, opts()).length > 0;
+    const list = hasContent ? checks(r, $("raw").value) : [];
+    if (hasContent && !fitInfo.fits) list.unshift({ lvl: "bad", t: "Too much text for this label. Shorten a line or pick a bigger label." });
+    else if (hasContent && fitInfo.pt < WARN_PT) list.unshift({ lvl: "warn", t: `Text is small (${fitInfo.pt.toFixed(1)} pt). Consider shortening the department.` });
+    if (hasContent && !list.length) list.push({ lvl: "ok", t: "Ready to print" });
+    $("chips").innerHTML = list.map(c => `<span class="chip ${c.lvl === "ok" ? "" : c.lvl}">${escapeHtml(c.t)}</span>`).join("");
+    $("printBtn").disabled = !hasContent || !fitInfo.fits;
+  }
+
+  let orderIndex = store.get("orders", null) || {};
+  let orderMeta = store.get("ordersMeta", null);
+  $("scriptUrl").value = store.get("scriptUrl", "");
+  function showCsvStatus() {
+    $("csvStatus").textContent = orderMeta
+      ? `${orderMeta.count} orders loaded from ${orderMeta.name} (${new Date(orderMeta.at).toLocaleString()}).`
+      : "No order export loaded.";
+  }
+  showCsvStatus();
+
+  function setFields(r) { FIELDS.forEach(f => $("f-" + f).value = r[f] || ""); render(); }
+
+  let lookupSeq = 0;
+  async function lookupOrder(order) {
+    const seq = ++lookupSeq;
+    setFields({ order });
+    const key = orderKey(order);
+    if (orderIndex[key]) {
+      setFields(Object.assign({}, orderIndex[key], { order }));
+      $("status").textContent = `Order ${order} found in the loaded export.`;
+      $("raw").select();
+      return;
+    }
+    const url = $("scriptUrl").value.trim();
+    if (url) {
+      $("status").textContent = `Looking up order ${order}…`;
+      try {
+        const res = await fetch(url + (url.includes("?") ? "&" : "?") + "order=" + encodeURIComponent(order));
+        const data = await res.json();
+        if (seq !== lookupSeq) return;
+        if (data && !data.error) {
+          const r = parseAddress(JSON.stringify(data));
+          setFields(Object.assign(r, { order }));
+          $("status").textContent = `Order ${order} found.`;
+          $("raw").select();
+          return;
+        }
+      } catch (e) {
+        if (seq !== lookupSeq) return;
+        $("status").textContent = `Couldn't reach the lookup for order ${order}. Paste the address instead.`;
+        return;
+      }
+    }
+    $("status").textContent = `No address found for order ${order}. Load a newer export, or paste the address into the box.`;
+  }
+
+  function fillFrom(raw) {
+    const tokens = raw.trim().split(/\s+/).filter(Boolean);
+    if (tokens.length && tokens.every(isOrderNumber)) {
+      const order = tokens[tokens.length - 1];
+      if (tokens.length > 1) $("raw").value = order;
+      lookupOrder(order);
+      return;
+    }
+    $("status").textContent = "";
+    setFields(parseAddress(raw));
+  }
+
+  $("csvBtn").addEventListener("click", () => $("csvFile").click());
+  $("csvFile").addEventListener("change", async e => {
+    const f = e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    try {
+      orderIndex = indexOrders(await f.text());
+      orderMeta = { name: f.name, count: Object.keys(orderIndex).length, at: Date.now() };
+      store.set("orders", orderIndex); store.set("ordersMeta", orderMeta);
+      showCsvStatus();
+      if (!orderMeta.count) $("csvStatus").textContent = "Found the order column, but no rows had an address. Check the column names.";
+    } catch (err) { $("csvStatus").textContent = err.message; }
+    $("raw").focus();
+  });
+  $("csvClear").addEventListener("click", () => {
+    orderIndex = {}; orderMeta = null;
+    store.set("orders", null); store.set("ordersMeta", null);
+    showCsvStatus();
+  });
+  $("scriptUrl").addEventListener("change", () => store.set("scriptUrl", $("scriptUrl").value.trim()));
+
+  // Scan / paste input: wait for the scanner to stop typing before parsing,
+  // so line breaks inside a QR don't split the address.
+  $("raw").addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => fillFrom($("raw").value), 180);
+  });
+
+  FIELDS.forEach(f => $("f-" + f).addEventListener("input", render));
+  $("f-country").addEventListener("change", () => {
+    const r = record();
+    const c = parseAddress("Country: " + r.country + "\nCity: x").country;
+    $("f-country").value = c;
+    $("f-phone").value = normalizePhone($("f-phone").value, c);
+    render();
+  });
+  $("f-phone").addEventListener("change", () => { $("f-phone").value = normalizePhone($("f-phone").value, $("f-country").value); render(); });
+
+  ["labelSize", "printMode", "cw", "ch", "optEmail", "optOrder", "optRotate", "optClear", "optAuto"].forEach(id => {
+    $(id).addEventListener("change", () => {
+      store.set("size", $("labelSize").value); store.set("mode", $("printMode").value);
+      store.set("cw", $("cw").value); store.set("ch", $("ch").value);
+      store.set("email", $("optEmail").checked); store.set("order", $("optOrder").checked);
+      store.set("rotate", $("optRotate").checked); store.set("clear", $("optClear").checked); store.set("auto", $("optAuto").checked);
+      $("customSize").classList.toggle("show", $("labelSize").value === "custom");
+      render();
+    });
+  });
+  $("customSize").classList.toggle("show", $("labelSize").value === "custom");
+  window.addEventListener("resize", render);
+
+  // Printing
+  function doPrint() {
+    if ($("printBtn").disabled) return;
+    const r = record(), s = size();
+    const label = buildLabel(r, s, fitInfo.pt);
+    const area = $("printArea");
+    area.innerHTML = "";
+    const rotate = $("optRotate").checked;
+    const paper = $("printMode").value === "paper";
+    let pageCss;
+    if (paper) {
+      pageCss = "@page { size: letter; margin: 0.75in; }";
+      const wrap = document.createElement("div");
+      wrap.style.cssText = "font-family: Arial, sans-serif; font-size: 10pt; color: #000;";
+      wrap.innerHTML = `<p style="margin:0 0 0.2in">Paper test: print at 100% scale. Cut on the dashed line and hold it against the Uline dry ice label's consignee field.</p>`;
+      const cut = document.createElement("div");
+      cut.style.cssText = "display:inline-block; outline: 1px dashed #000; outline-offset: 0;";
+      cut.appendChild(label);
+      wrap.appendChild(cut);
+      const ruler = document.createElement("div");
+      ruler.style.cssText = "margin-top:0.3in; width:1in; border-top:2px solid #000; font-size:8pt; padding-top:2px;";
+      ruler.textContent = "1 inch (check with a ruler)";
+      wrap.appendChild(ruler);
+      area.appendChild(wrap);
+    } else if (rotate) {
+      pageCss = `@page { size: ${s.h}in ${s.w}in; margin: 0; }`;
+      const box = document.createElement("div");
+      box.style.cssText = `width:${s.h}in;height:${s.w}in;position:relative;overflow:hidden;`;
+      label.style.position = "absolute";
+      label.style.left = "0"; label.style.top = "0";
+      label.style.transformOrigin = "top left";
+      label.style.transform = `translateX(${s.h}in) rotate(90deg)`;
+      box.appendChild(label);
+      area.appendChild(box);
+    } else {
+      pageCss = `@page { size: ${s.w}in ${s.h}in; margin: 0; }`;
+      area.appendChild(label);
+    }
+    $("pageStyle").textContent = pageCss;
+    window.print();
+  }
+
+  window.addEventListener("afterprint", () => {
+    $("printArea").innerHTML = "";
+    if ($("optClear").checked) clearAll();
+  });
+
+  function clearAll() {
+    $("raw").value = "";
+    FIELDS.forEach(f => $("f-" + f).value = "");
+    $("status").textContent = "";
+    render();
+    $("raw").focus();
+  }
+
+  $("printBtn").addEventListener("click", doPrint);
+  $("clearBtn").addEventListener("click", clearAll);
+  document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); doPrint(); }
+  });
+
+  // Screenshot OCR (runs in the browser; the image is not uploaded anywhere)
+  let tesseractLoading = null;
+  function loadTesseract() {
+    if (window.Tesseract) return Promise.resolve();
+    if (tesseractLoading) return tesseractLoading;
+    tesseractLoading = new Promise((res, rej) => {
+      const sc = document.createElement("script");
+      sc.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+      sc.onload = res; sc.onerror = () => rej(new Error("Could not load the text reader. Check the internet connection."));
+      document.head.appendChild(sc);
+    });
+    return tesseractLoading;
+  }
+  function readyToAutoPrint() {
+    const r = record();
+    if ($("printBtn").disabled) return false;
+    if (!(r.institution || r.contact) || !r.street || !r.postal || !r.city || !r.country) return false;
+    if (/[^\x00-\u024F\s]/.test(Object.values(r).join(" "))) return false; // odd OCR symbols
+    return !checks(r, $("raw").value).some(c => c.lvl === "bad");
+  }
+  async function prepImage(file) {
+    try {
+      const bmp = await createImageBitmap(file);
+      const scale = Math.min(3, Math.max(1, 2000 / Math.max(bmp.width, bmp.height)));
+      const c = document.createElement("canvas");
+      c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+      const ctx = c.getContext("2d");
+      ctx.imageSmoothingQuality = "high";
+      ctx.filter = "grayscale(1) contrast(1.4)";
+      ctx.drawImage(bmp, 0, 0, c.width, c.height);
+      return c;
+    } catch (e) { return file; }
+  }
+  async function ocr(file) {
+    $("status").textContent = "Reading text from the screenshot…";
+    try {
+      await loadTesseract();
+      const img = await prepImage(file);
+      const { data } = await Tesseract.recognize(img, "eng+deu", {
+        logger: m => { if (m.status === "recognizing text") $("status").textContent = `Reading text… ${Math.round(m.progress * 100)}%`; }
+      });
+      $("raw").value = data.text.trim();
+      fillFrom($("raw").value);
+      if ($("optAuto").checked && readyToAutoPrint()) {
+        $("status").textContent = "Text read from screenshot. Printing…";
+        doPrint();
+      } else {
+        $("status").textContent = $("optAuto").checked
+          ? "Text read from screenshot. Held for review: check the flagged fields, then print."
+          : "Text read from screenshot. Check every field before printing.";
+      }
+    } catch (err) {
+      $("status").textContent = err.message || "Couldn't read that image. Try pasting the address as text instead.";
+    }
+  }
+  const drop = $("drop");
+  drop.addEventListener("click", () => $("file").click());
+  drop.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
+  $("file").addEventListener("change", e => { if (e.target.files[0]) ocr(e.target.files[0]); e.target.value = ""; });
+  ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f && f.type.startsWith("image/")) ocr(f); });
+  document.addEventListener("paste", e => {
+    const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
+    if (item) { e.preventDefault(); ocr(item.getAsFile()); }
+  });
+
+  render();
+  $("raw").focus();
+})();
+</script>
+</body>
+</html>
