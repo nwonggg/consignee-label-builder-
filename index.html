@@ -52,7 +52,7 @@
   .wrap{ max-width: 1100px; margin: 0 auto; }
   .brandbar{
     height:6px;
-    background: linear-gradient(90deg, var(--teal), var(--teal-dark));
+    background: linear-gradient(90deg, var(--teal-dark), var(--teal));
     border-radius: 4px;
     margin-bottom:18px;
   }
@@ -64,7 +64,23 @@
   header .title p{ margin:0; font-size:13px; color:var(--muted); }
   header .right{ display:flex; align-items:center; gap:16px; }
   header .logo{ font-weight:700; letter-spacing:6px; font-size:15px; color: var(--ink); }
-  header .logo span{ color: var(--teal); }
+  header .logo .bio{ color: var(--teal-dark); }
+  :root[data-theme="dark"] header .logo .bio{ color: var(--teal); }
+  .theme-switch{
+    position:relative; width:52px; height:30px; border-radius:999px; flex:none;
+    border:1px solid var(--line); background:var(--field); cursor:pointer; padding:0;
+  }
+  .theme-switch .knob{
+    position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%;
+    background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center;
+    transition: transform .2s ease;
+  }
+  .theme-switch svg{ width:13px; height:13px; }
+  .theme-switch .moon{ display:none; }
+  :root[data-theme="dark"] .theme-switch .knob{ transform: translateX(22px); color:#0E2A21; }
+  :root[data-theme="dark"] .theme-switch .sun{ display:none; }
+  :root[data-theme="dark"] .theme-switch .moon{ display:block; }
+  .theme-switch:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
 
   .layout{ display:grid; grid-template-columns: minmax(0,1fr) minmax(0,420px); gap:18px; align-items:start; }
   @media (max-width: 900px){ .layout{ grid-template-columns: 1fr; } }
@@ -170,8 +186,13 @@
       <p>Scan, paste, or screenshot a ship-to address and print a standardized dry ice consignee sticker.</p>
     </div>
     <div class="right">
-      <div class="logo">T W I S T <span>·</span> BIOSCIENCE</div>
-      <button class="btn small" id="themeToggle" type="button" aria-label="Toggle light or dark mode">Dark mode</button>
+      <div class="logo">T W I S T <span class="bio">· BIOSCIENCE</span></div>
+      <button class="theme-switch" id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode">
+        <span class="knob">
+          <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 1.5v2.5M12 20v2.5M1.5 12H4M20 12h2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+          <svg class="moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></svg>
+        </span>
+      </button>
     </div>
   </header>
 
@@ -396,7 +417,7 @@ function splitLines(raw) {
     if (/[|;\t]/.test(one)) lines = one.split(/[|;\t]/).map(s => s.trim()).filter(Boolean);
     else if ((one.match(/,/g) || []).length >= 3) lines = one.split(",").map(s => s.trim()).filter(Boolean);
   } else {
-    lines = lines.flatMap(l => /\|/.test(l) ? l.split("|").map(s => s.trim()).filter(Boolean) : [l]);
+    lines = lines.flatMap(l => (l.match(/\|/g) || []).length >= 2 ? l.split("|").map(s => s.trim()).filter(Boolean) : [l.replace(/\|/g, "I")]);
   }
   return lines;
 }
@@ -430,7 +451,20 @@ function parseAddress(raw) {
   // 3. Free-form lines
   const r = emptyRecord();
   const rest = [];
+  // OCR sometimes breaks an email after a dot: "sakthivel. m@medgenome.com"
+  for (let i = 0; i < lines.length; i++) {
+    lines[i] = lines[i].replace(/([A-Za-z0-9_-]+[._-])\s+([A-Za-z0-9._%+-]+@)/g, "$1$2");
+    if (i + 1 < lines.length && /^[A-Za-z0-9._%+-]+[._-]$/.test(lines[i]) && /^[A-Za-z0-9._%+-]+@/.test(lines[i + 1])) {
+      lines[i + 1] = lines[i] + lines[i + 1]; lines[i] = "";
+    }
+  }
   for (let line of lines) {
+    if (!line) continue;
+    if (/^(ship(ping)?\s*to|deliver(y)?\s*to|consignee( name and address)?|address)\s*:?\s*$/i.test(line)) continue;
+    const dear = line.match(/^dear\s+(.+?)\s*[,:]?$/i);
+    if (dear) { r.contact = r.contact || dear[1]; continue; }
+    const cc = line.match(/^(?:customer\s+)?contact\s*(?:person)?\s*[:\-]?\s*(.+)$/i);
+    if (cc && !/\d/.test(cc[1])) { r.contact = r.contact || cc[1]; continue; }
     const em = line.match(RE_EMAIL);
     if (em) {
       r.email = r.email || em[0];
@@ -515,6 +549,7 @@ function parseAddress(raw) {
   // Leftovers: a person-like line becomes the contact, then fill institution / department
   rest.forEach((line, i) => {
     if (used[i]) return;
+    if (/^[a-z0-9._-]{1,20}$/.test(line)) { used[i] = true; return; } // stray OCR fragment
     const words = line.split(/\s+/);
     const personish = !/\d/.test(line) && words.length >= 2 && words.length <= 4 && words.every(w => /^[A-ZÀ-Ý][\p{L}'.-]*$/u.test(w) || /^(van|von|de|der|da|di|del|la|le)$/i.test(w));
     if (personish && !r.contact && !RE_ORG.test(line) && !RE_DEPT.test(line)) { r.contact = line; used[i] = true; return; }
@@ -526,6 +561,10 @@ function parseAddress(raw) {
   });
 
   if (!r.institution && r.department) { r.institution = r.department; r.department = ""; }
+  if (r.city && r.city.includes(",") && !r.state) {
+    const parts = r.city.split(",").map(x => x.trim()).filter(Boolean);
+    if (parts.length >= 2) { r.state = parts.pop(); r.city = parts.join(", "); }
+  }
   return finalize(r);
 }
 
@@ -587,7 +626,7 @@ function cityLines(r) {
     case "ca":
     case "au": return [[city, st, pc].filter(Boolean).join(" ")];
     case "uk": return [city, st, pc].filter(Boolean);
-    case "cityfirst": return [[city, pc].filter(Boolean).join(" ")].concat(st ? [st] : []);
+    case "cityfirst": return [[city && st ? city + ", " + st : (city || st), pc].filter(Boolean).join(" ")];
     default: return [[pc, city].filter(Boolean).join(" ")].concat(st ? [st] : []);
   }
 }
@@ -680,7 +719,7 @@ if (typeof module !== "undefined") module.exports = { indexOrders, orderKey, isO
   // Theme
   function applyTheme(t) {
     document.documentElement.setAttribute("data-theme", t);
-    $("themeToggle").textContent = t === "dark" ? "Light mode" : "Dark mode";
+    $("themeToggle").setAttribute("aria-checked", t === "dark" ? "true" : "false");
   }
   const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
   applyTheme(store.get("theme", prefersDark ? "dark" : "light"));
@@ -983,7 +1022,7 @@ if (typeof module !== "undefined") module.exports = { indexOrders, orderKey, isO
       const { data } = await Tesseract.recognize(img, "eng+deu", {
         logger: m => { if (m.status === "recognizing text") $("status").textContent = `Reading text… ${Math.round(m.progress * 100)}%`; }
       });
-      $("raw").value = data.text.trim();
+      $("raw").value = data.text.trim().replace(/(^|\s)\|(?=\s|$)/gm, "$1I");
       fillFrom($("raw").value);
       if ($("optAuto").checked && readyToAutoPrint()) {
         $("status").textContent = "Text read from screenshot. Printing…";
