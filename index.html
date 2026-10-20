@@ -580,7 +580,7 @@ function findCountry(text) {
 
 const RE_EMAIL = /[^\s@<>()]+@[^\s@<>()]+\.[a-z]{2,}/i;
 const RE_PHONE_LABEL = /^(phone|tel|telephone|ph|mobile|mob|cell|fax)\b\.?\s*[:#]?\s*/i;
-const RE_STREET = /(stra(ss|ß)e|str\.|strasse\b|street|\bst\.?$|\bst\b|road|\brd\b|avenue|\bave\b|boulevard|blvd|drive|\bdr\b|lane|\bln\b|way\b|weg\b|gasse|platz|allee|ring\b|rue\b|chemin|via\b|viale|calle|avenida|plaza|straat|laan|vej\b|gatan|gata|court|\bct\b|place|\bpl\b|parkway|pkwy|highway|hwy|suite|floor|building|bldg|campus)/i;
+const RE_STREET = /(stra(ss|ß)e|str\.|strasse\b|street|\bst\.?$|\bst\b|road|\brd\b|avenue|\bave\b|boulevard|blvd|drive|\bdr\b|lane|\bln\b|way\b|weg\b|gasse|platz|allee|ring\b|rue\b|chemin|via\b|viale|calle|avenida|plaza|straat|laan|vej\b|gatan|gata|court|\bct\b|place|\bpl\b|parkway|pkwy|highway|hwy|suite|floor|building|bldg|campus|\bcir\b|circle|crescent|\bcres\b|terrace|\bterr?\b|square|\bsq\b|caddesi|\bcad\.|sokak|soka[gğ][ıi]|\bsok\.|mahallesi|\bmah\.|bulvar)/i;
 const RE_POBOX = /\b(p\.?\s?o\.?\s?box|postfach|case postale|postbus|box \d)/i;
 const RE_ORG = /(universit|institutet|institutt|università|universidad|universidade|college|hospital|klinik|clinic|spital|\binc\b|\bltd\b|limited|gmbh|\bag\b|s\.a\.|\bsa\b|b\.v\.|\bbv\b|\bllc\b|corp|company|pharma|biotech|bioscience|therapeutics|foundation|stiftung|\beth\b|epfl|max planck|fraunhofer|helmholtz|inserm|cnrs|\bnih\b|medical cent|centre hospitalier)/i;
 const RE_DEPT = /(department|\bdept\b|institut\b|institute|abteilung|division|faculty|fakultät|school of|\blab\b|laboratory|labor\b|group|\bunit\b|core facility|facility|klinik für|attn)/i;
@@ -731,6 +731,11 @@ function parseAddress(raw) {
       if (!r.country) r.country = "CANADA";
       return;
     }
+    // Canadian postal code: "V2N 4Z9" alone, or "Prince George, BC V2N 4Z9"
+    if (/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(line) && !r.postal) { r.postal = line.toUpperCase().replace(/^(...)\s?/, "$1 "); used[i] = true; lonePostalIdx = i; return; }
+    if ((m = line.match(/^([^\d]+?),?\s+([A-Z]{2})\s+([A-Z]\d[A-Z]\s?\d[A-Z]\d)$/i)) && !r.postal) {
+      r.city = m[1].replace(/,$/, "").trim(); r.state = m[2].toUpperCase(); r.postal = m[3].toUpperCase().replace(/^(...)\s?/, "$1 "); used[i] = true; return;
+    }
     if (/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(line)) { r.postal = line.toUpperCase(); used[i] = true; return; }
     if (RE_POBOX.test(line)) return;
     if (RE_STREET.test(line) && /\d/.test(line)) return; // handled as street below
@@ -748,12 +753,16 @@ function parseAddress(raw) {
     }
   });
 
+  let streetIdx = -1;
   rest.forEach((line, i) => {
     if (used[i]) return;
     const streety = (RE_STREET.test(line) && /\d/.test(line)) || /^[^\d,]{2,40}\s(road|rd|street|st|avenue|ave|lane|ln|drive|dr|boulevard|blvd|highway|hwy|crescent|close)\.?$/i.test(line) || /^\d+[a-z]?\s+[^\d\s]/i.test(line) || /^[^\d]{3,}\s\d+[a-z]?(\s*[-\/]\s*\d+)?$/i.test(line);
-    if (RE_POBOX.test(line) || (streety && !RE_ORG.test(line) && !RE_DEPT.test(line))) {
+    // "3333 University Way": a house number plus a street word is a street, even if it
+    // also contains an organization word like University.
+    const numbered = /^\d+[a-z]?\s+\S/i.test(line) && RE_STREET.test(line.replace(/^\d+[a-z]?\s+/i, ""));
+    if (RE_POBOX.test(line) || numbered || (streety && !RE_ORG.test(line) && !RE_DEPT.test(line))) {
       if (!r.street) r.street = line; else if (!r.street2) r.street2 = line; else r.street2 += ", " + line;
-      used[i] = true;
+      used[i] = true; if (streetIdx < 0) streetIdx = i;
     }
   });
 
@@ -785,6 +794,8 @@ function parseAddress(raw) {
     if (used[i]) return;
     if (/^[a-z0-9._-]{1,20}$/.test(line)) { used[i] = true; return; } // stray OCR fragment
     const words = line.split(/\s+/);
+    // A short line after the street ("Yenimahalle", "Nairobi") is the city or district.
+    if (!r.city && streetIdx >= 0 && i > streetIdx && !/\d/.test(line) && words.length <= 3 && !RE_ORG.test(line) && !RE_DEPT.test(line)) { r.city = line; used[i] = true; return; }
     const personish = !/\d/.test(line) && words.length >= 2 && words.length <= 4 && words.every(w => /^[A-ZÀ-Ý][\p{L}'.-]*$/u.test(w) || /^(van|von|de|der|da|di|del|la|le)$/i.test(w));
     if (personish && !r.contact && !RE_ORG.test(line) && !RE_DEPT.test(line)) { r.contact = line; used[i] = true; return; }
     if (!r.institution) r.institution = line;
@@ -1282,12 +1293,30 @@ if (typeof module !== "undefined") module.exports = { indexOrders, orderKey, isO
   window.addEventListener("message", e => {
     if (e.origin !== MES_ORIGIN || !mes || e.source !== mes.win) return;
     const d = e.data || {};
-    if (d.type === "consignee-label:address" && typeof d.text === "string" && d.text.trim()) {
+    if (d.type === "consignee-label:record" && d.record && typeof d.record === "object") {
+      // Full address from MES's order data: fields arrive already split, no parsing needed.
+      const order = mes.order;
+      cancelMes(true);
+      const rec = emptyRecord();
+      for (const k of Object.keys(rec)) if (typeof d.record[k] === "string") rec[k] = d.record[k];
+      rec.order = order;
+      const r = finalize(rec);
+      $("raw").value = [r.contact, r.institution, r.department, r.street, r.street2,
+        [r.postal, r.city, r.state].filter(Boolean).join(" "), r.country, r.phone, r.email].filter(Boolean).join("\n");
+      setFields(r);
+      let msg = `Address for ${order} loaded from MES. Check the preview, then print with ⌘/Ctrl + Enter.`;
+      if (d.dropShipment) msg += " This is a drop shipment: confirm which address belongs on the label.";
+      if (d.carrierInstructions) msg += ` Shipping note in MES: “${String(d.carrierInstructions).slice(0, 200)}”`;
+      setQStatus(msg, !!d.dropShipment);
+      $("qSearch").focus(); $("qSearch").select();
+    } else if (d.type === "consignee-label:address" && typeof d.text === "string" && d.text.trim()) {
       const order = mes.order;
       cancelMes(true);
       $("raw").value = d.text.trim();
       setFields(Object.assign(parseAddress(d.text), { order }));
-      setQStatus(`Address for ${order} loaded from MES. Check the preview, then print with ⌘/Ctrl + Enter.`);
+      setQStatus(d.partial
+        ? `Address for ${order} read from the MES page, which can leave out the city and postal code. Check them against the packing slip.`
+        : `Address for ${order} loaded from MES. Check the preview, then print with ⌘/Ctrl + Enter.`, !!d.partial);
       $("qSearch").focus(); $("qSearch").select();
     } else if (d.type === "consignee-label:not-found") {
       const order = mes.order;
