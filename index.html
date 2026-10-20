@@ -155,6 +155,9 @@
   .custom-size{ display:none; grid-column:1 / -1; gap:14px; }
   .custom-size.show{ display:flex; }
   .custom-size .field{ flex:1; }
+  .qrow{ display:flex; gap:10px; }
+  .qrow input{ flex:1; font-size:20px; font-weight:600; letter-spacing:1px; padding:10px 12px; }
+  .status.error{ color: var(--danger); }
   .kbd{ font-size:12px; color:var(--muted); margin-top:8px; }
   .kbd kbd{ border:1px solid var(--line); border-radius:4px; padding:0 5px; font-family:inherit; font-size:11.5px; }
 
@@ -186,7 +189,7 @@
   <header>
     <div class="title">
       <h1>Consignee Label</h1>
-      <p>Scan, paste, or screenshot a ship-to address and print a standardized dry ice consignee sticker.</p>
+      <p>Look up a Q-number in MES, or paste or screenshot a ship-to address, and print a standardized dry ice consignee sticker.</p>
     </div>
     <div class="right">
       <div class="logo">T W I S T <span class="bio">· BIOSCIENCE</span></div>
@@ -202,12 +205,21 @@
   <div class="layout">
     <div>
       <div class="card">
+        <h2>Order Lookup</h2>
+        <div class="qrow">
+          <input type="text" id="qSearch" placeholder="Q-733443" autocomplete="off" spellcheck="false" aria-label="Q-number" aria-describedby="qStatus">
+          <button class="btn primary" id="qBtn" type="button">Look Up</button>
+        </div>
+        <div class="status" id="qStatus" aria-live="polite">Type or scan a Q-number and press Enter. The address comes from MES.</div>
+      </div>
+
+      <div class="card">
         <div class="card-head">
           <h2>Address Input</h2>
           <button class="btn small danger" id="clearTop" type="button" title="Clear the address (Esc)">Clear</button>
         </div>
         <p class="hint">Paste the address or a screenshot of it (⌘V / Ctrl+V). Fields fill in automatically.</p>
-        <textarea id="raw" spellcheck="false" autofocus placeholder="Universität Zürich&#10;Institut für medizinische Genetik&#10;12 Wagistrasse&#10;8952 Schlieren&#10;Switzerland&#10;phone: 41445563341"></textarea>
+        <textarea id="raw" spellcheck="false" placeholder="Universität Zürich&#10;Institut für medizinische Genetik&#10;12 Wagistrasse&#10;8952 Schlieren&#10;Switzerland&#10;phone: 41445563341"></textarea>
         <div class="drop" id="drop" tabindex="0" role="button" aria-label="Upload a screenshot of the address">Drop a screenshot here or click to choose one</div>
         <input type="file" id="file" accept="image/*" hidden>
         <div class="status" id="status" aria-live="polite"></div>
@@ -1005,15 +1017,98 @@ if (typeof module !== "undefined") module.exports = { indexOrders, orderKey, isO
   window.addEventListener("afterprint", () => {
     $("printArea").innerHTML = "";
     if ($("optClear").checked) clearAll();
+    else { $("qSearch").focus(); $("qSearch").select(); }
   });
 
   function clearAll() {
+    cancelMes(true);
     $("raw").value = "";
+    $("qSearch").value = "";
     FIELDS.forEach(f => $("f-" + f).value = "");
     $("status").textContent = "";
+    setQStatus("Type or scan a Q-number and press Enter. The address comes from MES.");
     render();
-    $("raw").focus();
+    $("qSearch").focus();
   }
+
+
+  // MES lookup. The tool can't read MES pages directly (different site), so it opens the
+  // order in a pop-up and the Tampermonkey helper on MES sends the Ship To text back.
+  const MES_ORIGIN = "https://mes-laso.twistbioscience.com";
+  const MES_WINDOW = "consigneeLabelMES";
+  const MES_TIMEOUT_MS = 45000;
+  let mes = null; // { win, order, timer, poll }
+
+  function setQStatus(text, isError) {
+    $("qStatus").textContent = text;
+    $("qStatus").classList.toggle("error", !!isError);
+  }
+
+  function qNumber(input) {
+    const m = (input || "").trim().match(/^q?[\s#-]*(\d{4,10})$/i);
+    return m ? "Q-" + m[1] : null;
+  }
+
+  function cancelMes(closeWindow) {
+    if (!mes) return;
+    clearTimeout(mes.timer); clearInterval(mes.poll);
+    if (closeWindow) { try { mes.win.close(); } catch (e) {} }
+    mes = null;
+  }
+
+  function mesLookup(input) {
+    const order = qNumber(input);
+    if (!order) { setQStatus(`"${input.trim()}" isn't a Q-number. Use Q-733443 or just 733443.`, true); $("qSearch").select(); return; }
+    cancelMes(false);
+    $("qSearch").value = order;
+    $("raw").value = "";
+    $("status").textContent = "";
+    setFields({ order });
+    const url = `${MES_ORIGIN}/soop/orders/${order}`;
+    const win = window.open(url, MES_WINDOW, "popup,width=900,height=720");
+    if (!win) {
+      setQStatus("Chrome blocked the MES pop-up. Click the blocked pop-up icon in the address bar, choose Always allow for this site, then press Enter again.", true);
+      return;
+    }
+    mes = { win, order };
+    setQStatus(`Opening ${order} in MES…`);
+    mes.timer = setTimeout(() => {
+      const o = mes && mes.order;
+      cancelMes(false);
+      setQStatus(`MES didn't send an address for ${o} within 45 seconds. If the MES window shows it, the helper couldn't read it. Paste the address below instead.`, true);
+    }, MES_TIMEOUT_MS);
+    mes.poll = setInterval(() => {
+      if (mes && mes.win.closed) {
+        const o = mes.order;
+        cancelMes(false);
+        setQStatus(`The MES window closed before the address for ${o} came back. Press Enter to try again, or paste the address below.`, true);
+      }
+    }, 500);
+  }
+
+  window.addEventListener("message", e => {
+    if (e.origin !== MES_ORIGIN || !mes || e.source !== mes.win) return;
+    const d = e.data || {};
+    if (d.type === "consignee-label:address" && typeof d.text === "string" && d.text.trim()) {
+      const order = mes.order;
+      cancelMes(true);
+      $("raw").value = d.text.trim();
+      setFields(Object.assign(parseAddress(d.text), { order }));
+      setQStatus(`Address for ${order} loaded from MES. Check the preview, then print with ⌘/Ctrl + Enter.`);
+      $("qSearch").focus(); $("qSearch").select();
+    } else if (d.type === "consignee-label:not-found") {
+      const order = mes.order;
+      cancelMes(false);
+      setQStatus(`The helper couldn't find a Ship To section on the MES page for ${order}. Paste the address below, and send the Ship To outerHTML so the helper can be fixed.`, true);
+    } else if (d.type === "consignee-label:waiting") {
+      setQStatus(`Waiting for MES to show ${mes.order}. Sign in in the pop-up if it asks.`);
+    }
+  });
+
+  $("qSearch").addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.ctrlKey && !e.metaKey) { e.preventDefault(); mesLookup($("qSearch").value); }
+  });
+  $("qBtn").addEventListener("click", () => mesLookup($("qSearch").value));
 
   $("printBtn").addEventListener("click", doPrint);
   $("clearBtn").addEventListener("click", clearAll);
@@ -1091,7 +1186,7 @@ if (typeof module !== "undefined") module.exports = { indexOrders, orderKey, isO
   });
 
   render();
-  $("raw").focus();
+  $("qSearch").focus();
 })();
 </script>
 </body>
